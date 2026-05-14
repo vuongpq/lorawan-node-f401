@@ -106,7 +106,7 @@ flowchart TD
     E --> F[OLED_Init]
     F --> G[DebugUpdateIdentityValues]
     G --> H[LoRaWAN_Init]
-    H --> I[Vong lap while(1)]
+  H --> I["Vong lap while(1)"]
 ```
 
 ---
@@ -145,7 +145,7 @@ flowchart TD
     B -- Co --> C[Doc ADC raw]
     C --> D[Tinh mV]
     D --> E[Tinh PPM]
-    E --> F[Cap nhat LoRaWAN_SetMQ7Raw(raw)]
+    E --> F["Cap nhat LoRaWAN_SetMQ7Raw(raw)"]
     F --> G[Cap nhat 4 dong OLED]
     G --> H[OLED_Update]
 ```
