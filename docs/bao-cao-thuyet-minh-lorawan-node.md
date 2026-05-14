@@ -119,22 +119,22 @@ flowchart TD
 
 ### Cong thuc su dung
 - Dien ap dau ra:
-  \[
+  $$
   V_{out} = ADC \times \frac{3.3}{4095}
-  \]
+  $$
 - Dien tro cam bien:
-  \[
+  $$
   R_s = R_L \times \frac{V_{ref}-V_{out}}{V_{out}}
-  \]
+  $$
 - Ty so:
-  \[
+  $$
   ratio = \frac{R_s}{R_0}
-  \]
+  $$
 - Duong cong xap xi:
-  \[
+  $$
   PPM = A \times ratio^B
-  \]
-  voi `A = 99.042`, `B = -1.518`.
+  $$
+  voi A = 99.042, B = -1.518.
 
 ### Luong xu ly dinh ky 500 ms
 
