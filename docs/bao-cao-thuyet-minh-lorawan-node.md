@@ -1,56 +1,56 @@
-# Bao cao thuyet minh trien khai LoRa Node (STM32F401 + LoRaMac)
+# Báo cáo thuyết minh triển khai LoRa Node (STM32F401 + LoRaMac)
 
-## 1) Tong quan he thong
+## 1) Tổng quan hệ thống
 
-Node duoc trien khai tren STM32F401, ket hop:
-- Cam bien MQ-7 do nong do CO qua ADC (PA0).
-- OLED I2C de hien thi ADC, dien ap, PPM va trang thai join LoRaWAN.
-- Stack LoRaMac 4.x (OTAA, region AS923) de ket noi Gateway/Network Server.
+Node được triển khai trên STM32F401, kết hợp:
+- Cảm biến MQ-7 đo nồng độ CO qua ADC (PA0).
+- OLED I2C để hiển thị ADC, điện áp, PPM và trạng thái join LoRaWAN.
+- Stack LoRaMac 4.x (OTAA, region AS923) để kết nối Gateway/Network Server.
 
-Luong du lieu chinh:
-1. MCU doc ADC MQ-7 dinh ky.
-2. Quy doi ADC -> mV -> PPM (phuc vu hien thi).
-3. Day ADC raw vao module LoRaWAN de tao uplink payload 2 byte.
-4. LoRaWAN state machine xu ly JOIN/SEND/WAIT.
+Luồng dữ liệu chính:
+1. MCU đọc ADC MQ-7 định kỳ.
+2. Quy đổi ADC -> mV -> PPM (phục vụ hiển thị).
+3. Đẩy ADC raw vào module LoRaWAN để tạo uplink payload 2 byte.
+4. LoRaWAN state machine xử lý JOIN/SEND/WAIT.
 
 ---
 
-## 2) Khoi Commissioning (tham so OTAA)
+## 2) Khối Commissioning (tham số OTAA)
 
-### Chuc nang
-- Cung cap tham so cau hinh LoRaWAN:
+### Chức năng
+- Cung cấp tham số cấu hình LoRaWAN:
   - `ACTIVE_REGION` = `LORAMAC_REGION_AS923`
   - `DevEui`, `JoinEui`, `AppKey`
-- Du an dang dung `COMMISSIONING_STATIC_DEVICE_EUI = 1` nen DevEUI van hanh o che do co dinh.
-- Gia tri DevEUI co dinh nay duoc tao tu UID thuc te cua node qua buoc debug, sau do nhap nguoc vao `COMMISSIONING_DEVICE_EUI` de su dung on dinh.
+- Dự án đang dùng `COMMISSIONING_STATIC_DEVICE_EUI = 1` nên DevEUI vận hành ở chế độ cố định.
+- Giá trị DevEUI cố định này được tạo từ UID thực tế của node qua bước debug, sau đó nhập ngược vào `COMMISSIONING_DEVICE_EUI` để sử dụng ổn định.
 
 ### Logic
-1. Khi compile, cac macro trong `Commissioning.h` duoc bien dich thanh mang byte.
-2. Khi runtime, `LoRaWAN_Init()` nap `AppKey/NwkKey` vao MIB cua LoRaMac.
-3. `SendJoinRequest()` gui lenh OTAA Join voi datarate DR_2.
+1. Khi compile, các macro trong `Commissioning.h` được biên dịch thành mảng byte.
+2. Khi runtime, `LoRaWAN_Init()` nạp `AppKey/NwkKey` vào MIB của LoRaMac.
+3. `SendJoinRequest()` gửi lệnh OTAA Join với datarate DR_2.
 
-### Luu y bao cao
-- Trinh bay ro rang: thong so bao mat (AppKey) dang hard-code, phu hop demo/lab, khong phu hop production.
+### Lưu ý báo cáo
+- Trình bày rõ ràng: thông số bảo mật (AppKey) đang hard-code, phù hợp demo/lab, không phù hợp production.
 
-### 2.1) Mo ta chi tiet cach tao DevEUI
+### 2.1) Mô tả chi tiết cách tạo DevEUI
 
-He thong ho tro 2 che do tao DevEUI:
-1. DevEUI tinh (manual):
-- Bat bang `COMMISSIONING_STATIC_DEVICE_EUI = 1` trong `Commissioning.h`.
-- Gia tri su dung truc tiep tu macro `COMMISSIONING_DEVICE_EUI` (8 byte, big-endian).
-- Trong quy trinh trien khai thuc te, gia tri nay thuong duoc lay tu UID chip (qua debug), roi copy nguoc vao macro de khoa dinh danh node.
+Hệ thống hỗ trợ 2 chế độ tạo DevEUI:
+1. DevEUI tĩnh (manual):
+- Bật bằng `COMMISSIONING_STATIC_DEVICE_EUI = 1` trong `Commissioning.h`.
+- Giá trị sử dụng trực tiếp từ macro `COMMISSIONING_DEVICE_EUI` (8 byte, big-endian).
+- Trong quy trình triển khai thực tế, giá trị này thường được lấy từ UID chip (qua debug), rồi copy ngược vào macro để khóa định danh node.
 
-2. DevEUI dong (tu UID cua STM32):
-- Bat bang `COMMISSIONING_STATIC_DEVICE_EUI = 0`.
-- Trong secure element soft-se, `SecureElementInit()` goi `SoftSeHalGetUniqueId()`.
-- `SoftSeHalGetUniqueId()` goi tiep `BoardGetUniqueId()` de lay UID phan cung.
+2. DevEUI động (từ UID của STM32):
+- Bật bằng `COMMISSIONING_STATIC_DEVICE_EUI = 0`.
+- Trong secure element soft-se, `SecureElementInit()` gọi `SoftSeHalGetUniqueId()`.
+- `SoftSeHalGetUniqueId()` gọi tiếp `BoardGetUniqueId()` để lấy UID phần cứng.
 
-Quy tac map UID -> DevEUI hien tai cua du an (trong `Core/LoRaMac/board/board.c`):
-- Doc 3 word UID 32-bit:
+Quy tắc map UID -> DevEUI hiện tại của dự án (trong `Core/LoRaMac/board/board.c`):
+- Đọc 3 word UID 32-bit:
   - `uid0 = HAL_GetUIDw0()`
   - `uid1 = HAL_GetUIDw1()`
   - `uid2 = HAL_GetUIDw2()`
-- Gan 8 byte DevEUI theo thu tu:
+- Gán 8 byte DevEUI theo thứ tự:
   - `id[0] = uid0[31:24]`
   - `id[1] = uid0[23:16]`
   - `id[2] = uid0[15:8]`
@@ -60,42 +60,42 @@ Quy tac map UID -> DevEUI hien tai cua du an (trong `Core/LoRaMac/board/board.c`
   - `id[6] = uid2[31:24]`
   - `id[7] = uid2[23:16]`
 
-Luu y ky thuat quan trong:
-- DevEUI trong secure element la mang 8 byte big-endian.
-- Khi tao JoinRequest, LoRaMac copy DevEUI nay vao truong `JoinReq.DevEUI`.
-- Qua trinh serialize cua LoRaMac se dao thu tu byte theo yeu cau over-the-air (LSB first trong frame Join), vi vay can de nguyen quy tac map o tren cho dung voi stack.
+Lưu ý kỹ thuật quan trọng:
+- DevEUI trong secure element là mảng 8 byte big-endian.
+- Khi tạo JoinRequest, LoRaMac copy DevEUI này vào trường `JoinReq.DevEUI`.
+- Quá trình serialize của LoRaMac sẽ đảo thứ tự byte theo yêu cầu over-the-air (LSB first trong frame Join), vì vậy cần để nguyên quy tắc map ở trên cho đúng với stack.
 
-Luu do tao DevEUI:
+Lưu đồ tạo DevEUI:
 
 ```mermaid
 flowchart TD
-    A[Khoi dong SecureElementInit] --> B{STATIC_DEVICE_EUI?}
-    B -- =1 --> C[Lay COMMISSIONING_DEVICE_EUI]
+    A[Khởi động SecureElementInit] --> B{STATIC_DEVICE_EUI?}
+    B -- =1 --> C[Lấy COMMISSIONING_DEVICE_EUI]
     B -- =0 --> D[SoftSeHalGetUniqueId]
     D --> E[BoardGetUniqueId]
-    E --> F[Doc uid0 uid1 uid2 tu HAL_GetUIDw0/w1/w2]
-    F --> G[Map 8 byte DevEUI theo quy tac du an]
-    C --> H[Luu SeNvm.DevEui]
+    E --> F[Đọc uid0 uid1 uid2 từ HAL_GetUIDw0/w1/w2]
+    F --> G[Map 8 byte DevEUI theo quy tắc dự án]
+    C --> H[Lưu SeNvm.DevEui]
     G --> H
-    H --> I[LoRaMac dung SecureElementGetDevEui khi tao JoinRequest]
+    H --> I[LoRaMac dùng SecureElementGetDevEui khi tạo JoinRequest]
 ```
 
-Thuc trang cua project nay:
-- Dang de `COMMISSIONING_STATIC_DEVICE_EUI = 1`, nen runtime su dung DevEUI co dinh trong `Commissioning.h`.
-- Quy trinh da ap dung: doc UID trong `main.c` de debug -> suy ra DevEUI cua node -> nhap nguoc vao `COMMISSIONING_DEVICE_EUI`.
-- Vi vay DevEUI dang dung van la static khi van hanh, nhung nguon goc gia tri la UID thuc te cua tung thiet bi.
+Thực trạng của project này:
+- Đang để `COMMISSIONING_STATIC_DEVICE_EUI = 1`, nên runtime sử dụng DevEUI cố định trong `Commissioning.h`.
+- Quy trình đã áp dụng: đọc UID trong `main.c` để debug -> suy ra DevEUI của node -> nhập ngược vào `COMMISSIONING_DEVICE_EUI`.
+- Vì vậy DevEUI đang dùng vẫn là static khi vận hành, nhưng nguồn gốc giá trị là UID thực tế của từng thiết bị.
 
 ---
 
-## 3) Khoi khoi tao he thong (`main.c`)
+## 3) Khối khởi tạo hệ thống (`main.c`)
 
-### Chuc nang
-- Khoi tao HAL, clock, GPIO/SPI/I2C.
-- Khoi tao ADC cho MQ-7 bang thanh ghi truc tiep.
-- Khoi tao OLED.
-- Khoi tao LoRaWAN app.
+### Chức năng
+- Khởi tạo HAL, clock, GPIO/SPI/I2C.
+- Khởi tạo ADC cho MQ-7 bằng thanh ghi trực tiếp.
+- Khởi tạo OLED.
+- Khởi tạo LoRaWAN app.
 
-### Luong khoi dong
+### Luồng khởi động
 
 ```mermaid
 flowchart TD
@@ -106,84 +106,84 @@ flowchart TD
     E --> F[OLED_Init]
     F --> G[DebugUpdateIdentityValues]
     G --> H[LoRaWAN_Init]
-  H --> I["Vong lap while(1)"]
+  H --> I["Vòng lặp while(1)"]
 ```
 
 ---
 
-## 4) Khoi do MQ-7 va xu ly PPM
+## 4) Khối đo MQ-7 và xử lý PPM
 
-### Chuc nang
-- `MQ7_ReadRaw()` doc ADC1 channel 0 (PA0), timeout 10 ms.
-- `MQ7_AdcToPpm()` quy doi ADC raw sang nong do CO uoc luong (PPM).
+### Chức năng
+- `MQ7_ReadRaw()` đọc ADC1 channel 0 (PA0), timeout 10 ms.
+- `MQ7_AdcToPpm()` quy đổi ADC raw sang nồng độ CO ước lượng (PPM).
 
-### Cong thuc su dung
-- Dien ap dau ra:
+### Công thức sử dụng
+- Điện áp đầu ra:
   $$
   V_{out} = ADC \times \frac{3.3}{4095}
   $$
-- Dien tro cam bien:
+- Điện trở cảm biến:
   $$
   R_s = R_L \times \frac{V_{ref}-V_{out}}{V_{out}}
   $$
-- Ty so:
+- Tỷ số:
   $$
   ratio = \frac{R_s}{R_0}
   $$
-- Duong cong xap xi:
+- Đường cong xấp xỉ:
   $$
   PPM = A \times ratio^B
   $$
-  voi A = 99.042, B = -1.518.
+  với A = 99.042, B = -1.518.
 
-### Luong xu ly dinh ky 500 ms
+### Luồng xử lý định kỳ 500 ms
 
 ```mermaid
 flowchart TD
-    A[Lay tick hien tai] --> B{now - last >= 500ms?}
-    B -- Khong --> Z[Bo qua]
-    B -- Co --> C[Doc ADC raw]
-    C --> D[Tinh mV]
-    D --> E[Tinh PPM]
-    E --> F["Cap nhat LoRaWAN_SetMQ7Raw(raw)"]
-    F --> G[Cap nhat 4 dong OLED]
+    A[Lấy tick hiện tại] --> B{now - last >= 500ms?}
+    B -- Không --> Z[Bỏ qua]
+    B -- Có --> C[Đọc ADC raw]
+    C --> D[Tính mV]
+    D --> E[Tính PPM]
+    E --> F["Cập nhật LoRaWAN_SetMQ7Raw(raw)"]
+    F --> G[Cập nhật 4 dòng OLED]
     G --> H[OLED_Update]
 ```
 
 ---
 
-## 5) Khoi OLED (`oled.c`)
+## 5) Khối OLED (`oled.c`)
 
-### Chuc nang
-- Tu dong do I2C address (0x3C, fallback 0x3D).
-- Khoi tao SSD1306/SH1106 bang chuoi lenh.
-- Duy tri frame buffer RAM va ghi tung page ra man hinh.
+### Chức năng
+- Tự động dò I2C address (0x3C, fallback 0x3D).
+- Khởi tạo SSD1306/SH1106 bằng chuỗi lệnh.
+- Duy trì frame buffer RAM và ghi từng page ra màn hình.
 
-### Luong cap nhat hien thi
+### Luồng cập nhật hiển thị
 
 ```mermaid
 flowchart TD
-    A[OLED_Clear / OLED_DrawText] --> B[Dem ky tu vao gOledBuffer]
+    A[OLED_Clear / OLED_DrawText] --> B[Đệm ký tự vào gOledBuffer]
     B --> C[OLED_Update]
-    C --> D[Lap qua tung page 0..7]
+    C --> D[Lặp qua từng page 0..7]
     D --> E[Ghi command set page+col]
     E --> F[Ghi data page qua I2C]
     F --> D
-    D -->|Xong| G[Khung hinh moi hien thi]
+    D -->|Xong| G[Khung hình mới hiển thị]
 ```
 
 ---
 
-## 6) Khoi LoRaWAN app (`lora_app.c`)
+## 6) Khối LoRaWAN app (`lora_app.c`)
 
 ### 6.1 State machine
-Trang thai:
-- `APP_STATE_JOIN`: gui OTAA Join.
-- `APP_STATE_SEND`: gui uplink.
-- `APP_STATE_WAIT`: doi callback/timeout de chuyen trang thai.
-- `APP_STATE_IDLE`, `APP_STATE_JOINED`: khai bao bo tro.
+Trạng thái:
+- `APP_STATE_JOIN`: gửi OTAA Join.
+- `APP_STATE_SEND`: gửi uplink.
+- `APP_STATE_WAIT`: đợi callback/timeout để chuyển trạng thái.
+- `APP_STATE_IDLE`, `APP_STATE_JOINED`: khai báo bổ trợ.
 
-### 6.2 Luong xu ly chinh trong `LoRaWAN_Process()`
+### 6.2 Luồng xử lý chính trong `LoRaWAN_Process()`
 
 ```mermaid
 flowchart TD
@@ -191,28 +191,28 @@ flowchart TD
     B --> C{AppState}
 
     C -->|JOIN| D{now >= NextTxAt?}
-    D -- Co --> E[SendJoinRequest]
-    D -- Khong --> Z1[Cho]
+    D -- Có --> E[SendJoinRequest]
+    D -- Không --> Z1[Chờ]
 
     C -->|SEND/JOINED| F{now >= NextTxAt?}
-    F -- Co --> G[SendUplink]
-    F -- Khong --> Z2[Cho]
+    F -- Có --> G[SendUplink]
+    F -- Không --> Z2[Chờ]
 
     C -->|WAIT| H{now >= NextTxAt?}
-    H -- Co --> I{JoinAccepted?}
+    H -- Có --> I{JoinAccepted?}
     I -- Yes --> J[State = SEND]
     I -- No --> K[State = JOIN]
-    H -- Khong --> Z3[Cho]
+    H -- Không --> Z3[Chờ]
 ```
 
-### 6.3 Luong Join OTAA
+### 6.3 Luồng Join OTAA
 
 ```mermaid
 flowchart TD
     A[State JOIN] --> B[SendJoinRequest]
     B --> C{LoRaMacMlmeRequest status}
     C -- OK --> D[State WAIT, set timeout confirm]
-    C -- Busy/Restricted --> E[Backoff theo dutyCycleWait hoac 5s]
+    C -- Busy/Restricted --> E[Backoff theo dutyCycleWait hoặc 5s]
 
     D --> F[OnMlmeConfirm]
     F --> G{Join success?}
@@ -220,20 +220,20 @@ flowchart TD
     G -- No --> I[LED OFF, retry sau 30s, State=JOIN]
 ```
 
-### 6.4 Luong gui uplink
-- Payload ung dung dung 2 byte:
-  - Byte 0: MSB cua ADC raw MQ-7.
-  - Byte 1: LSB cua ADC raw MQ-7.
-- Port: `2`, datarate: `DR_2`, chu ky gui: `20s`.
-- Neu MAC con pending command, gui frame rong de flush.
+### 6.4 Luồng gửi uplink
+- Payload ứng dụng dùng 2 byte:
+  - Byte 0: MSB của ADC raw MQ-7.
+  - Byte 1: LSB của ADC raw MQ-7.
+- Port: `2`, datarate: `DR_2`, chu kỳ gửi: `20s`.
+- Nếu MAC còn pending command, gửi frame rỗng để flush.
 
 ```mermaid
 flowchart TD
-    A[State SEND] --> B[Lay gMQ7Raw]
-    B --> C[Dong goi 2 byte payload]
+    A[State SEND] --> B[Lấy gMQ7Raw]
+    B --> C[Đóng gói 2 byte payload]
     C --> D{LoRaMacQueryTxPossible?}
-    D -- Khong --> E[Gui empty frame de flush MAC cmd]
-    D -- Co --> F[Gui unconfirmed uplink port 2]
+    D -- Không --> E[Gửi empty frame để flush MAC cmd]
+    D -- Có --> F[Gửi unconfirmed uplink port 2]
     E --> G[State WAIT]
     F --> G
     G --> H[OnMcpsConfirm -> NextTxAt = now + 20s]
@@ -241,16 +241,16 @@ flowchart TD
 
 ---
 
-## 7) Luong tong the end-to-end
+## 7) Luồng tổng thể end-to-end
 
 ```mermaid
 flowchart LR
     A[MQ-7 Sensor] --> B[ADC raw PA0]
     B --> C[main loop 500ms]
-    C --> D[Hien thi OLED: ADC/mV/PPM + Join]
+    C --> D[Hiển thị OLED: ADC/mV/PPM + Join]
     C --> E[LoRaWAN_SetMQ7Raw]
     E --> F[LoRaWAN state machine]
-    F --> G[Dong goi 2-byte uplink]
+    F --> G[Đóng gói 2-byte uplink]
     G --> H[SX1276 Radio Tx]
     H --> I[Gateway]
     I --> J[Network Server / ChirpStack]
@@ -258,36 +258,36 @@ flowchart LR
 
 ---
 
-## 8) Tom tat theo tung phan de dua vao bao cao
+## 8) Tóm tắt theo từng phần để đưa vào báo cáo
 
-1. Phan cau hinh OTAA:
-- Dinh nghia bo khoa/ID va region trong `Commissioning.h`.
-- LoRaMac nap key qua MIB truoc khi start stack.
+1. Phần cấu hình OTAA:
+- Định nghĩa bộ khóa/ID và region trong `Commissioning.h`.
+- LoRaMac nạp key qua MIB trước khi start stack.
 
-2. Phan khoi tao phan cung:
-- HAL + Clock + peripheral co ban (GPIO/SPI/I2C).
-- ADC cho MQ-7 duoc toi uu bang truy cap thanh ghi.
-- OLED tu dong nhan dia chi I2C.
+2. Phần khởi tạo phần cứng:
+- HAL + Clock + peripheral cơ bản (GPIO/SPI/I2C).
+- ADC cho MQ-7 được tối ưu bằng truy cập thanh ghi.
+- OLED tự động nhận địa chỉ I2C.
 
-3. Phan xu ly cam bien:
-- Chu ky 500 ms doc ADC.
-- Quy doi sang mV va PPM theo mo hinh ham mu.
-- Day ADC raw sang khoi LoRaWAN.
+3. Phần xử lý cảm biến:
+- Chu kỳ 500 ms đọc ADC.
+- Quy đổi sang mV và PPM theo mô hình hàm mũ.
+- Đẩy ADC raw sang khối LoRaWAN.
 
-4. Phan LoRaWAN:
-- Su dung OTAA, state machine JOIN/SEND/WAIT.
-- Co callback xac nhan join/tx de dong bo trang thai.
-- Uplink unconfirmed moi 20 s, payload 2 byte.
+4. Phần LoRaWAN:
+- Sử dụng OTAA, state machine JOIN/SEND/WAIT.
+- Có callback xác nhận join/tx để đồng bộ trạng thái.
+- Uplink unconfirmed mỗi 20 s, payload 2 byte.
 
-5. Phan giao dien OLED:
-- Hien thi song song trang thai he thong va chat luong khong khi.
-- Bieu tuong tron dac/rong cho biet da join hay chua.
+5. Phần giao diện OLED:
+- Hiển thị song song trạng thái hệ thống và chất lượng không khí.
+- Biểu tượng tròn đặc/rỗng cho biết đã join hay chưa.
 
 ---
 
-## 9) De xuat mo rong (neu can dua vao muc huong phat trien)
+## 9) Đề xuất mở rộng (nếu cần đưa vào mục hướng phát triển)
 
-- Them bo loc trung binh truot cho ADC de giam nhieu.
-- Dong goi payload theo dinh dang co version (VD: [ver|adc_msb|adc_lsb|battery]).
-- Them downlink command de doi chu ky gui tu server.
-- Chuyen key ra secure element hoac co che provisioning an toan.
+- Thêm bộ lọc trung bình trượt cho ADC để giảm nhiễu.
+- Đóng gói payload theo định dạng có version (VD: [ver|adc_msb|adc_lsb|battery]).
+- Thêm downlink command để đổi chu kỳ gửi từ server.
+- Chuyển key ra secure element hoặc cơ chế provisioning an toàn.
