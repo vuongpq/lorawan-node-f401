@@ -1,0 +1,19 @@
+#ifndef BOARD_H
+#define BOARD_H
+
+#include "stm32f4xx_hal.h"
+
+#define RADIO_RESET_PORT GPIOB
+#define RADIO_RESET_PIN GPIO_PIN_0
+
+#define RADIO_NSS_PORT GPIOA
+#define RADIO_NSS_PIN GPIO_PIN_4
+
+#define RADIO_DIO0_PORT GPIOB
+#define RADIO_DIO0_PIN GPIO_PIN_1
+
+#define RADIO_DIO1_PORT GPIOB
+#define RADIO_DIO1_PIN GPIO_PIN_2
+
+#endif
+

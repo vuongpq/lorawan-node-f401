@@ -1,0 +1,32 @@
+#ifndef COMMISSIONING_H
+#define COMMISSIONING_H
+
+#include <stdint.h>
+
+#define ACTIVE_REGION LORAMAC_REGION_AS923
+
+/*
+ * Runtime DevEUI is derived from the STM32 UID when COMMISSIONING_STATIC_DEVICE_EUI is 0.
+ * Current node runtime DevEUI observed in debug: 005C005531383630/0037001931383630
+ * ChirpStack copy values:
+ *   JoinEUI: 0000000000000000
+ *   AppKey : 2B7E151628AED2A6ABF7158809CF4F3C
+ */
+
+#define COMMISSIONING_STATIC_DEVICE_EUI 1
+
+#define COMMISSIONING_DEVICE_EUI { 0x00, 0x37, 0x00, 0x19, 0x31, 0x38, 0x36, 0x30 }
+
+#define COMMISSIONING_JOIN_EUI_HEX "0000000000000000"
+#define COMMISSIONING_APP_KEY_HEX  "2B7E151628AED2A6ABF7158809CF4F3C"
+
+#define COMMISSIONING_JOIN_EUI { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }
+
+#define COMMISSIONING_APP_KEY { 0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, \
+								0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C }
+
+static const uint8_t DevEui[8] = COMMISSIONING_DEVICE_EUI;
+static const uint8_t JoinEui[8] = COMMISSIONING_JOIN_EUI;
+static const uint8_t AppKey[16] = COMMISSIONING_APP_KEY;
+
+#endif
